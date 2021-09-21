@@ -19,7 +19,7 @@ def strToFunc(string):
 
     caseList.append(Case(returnVal = numToExpr(0)))
 
-    return Expr(Function('str', [Token(TokenType.NAME, 'i')], caseList), ExprType.FUNC)
+    return Expr(Function('str', [Token(TokenType.NAME, -1, literal = 'i')], caseList), ExprType.FUNC)
 
 def printFunc(func, funcMap):
     func.isCalled = True
@@ -30,7 +30,12 @@ def printFunc(func, funcMap):
     while True:
         
         func.calls = [[numToExpr(index)]]
-        val = runFunc(func, funcMap).literal
+        try:
+            val = runFunc(func, funcMap).literal
+        except Exception as msg:
+            print(msg)
+            return
+
 
         index += 1
 
@@ -68,6 +73,13 @@ def run(expr, funcMap):
         expr.type = ExprType.FUNC
         expr.literal = funcMap[expr.literal].copy()
 
+    if expr.literal.params is None:
+        if len(expr.calls[0]) > 0:
+            raise Exception("'" + expr.literal.name + "' was called with the wrong number of parameters")
+    elif len(expr.literal.params) != len(expr.calls[0]):
+        raise Exception("'" + expr.literal.name + "' was called with the wrong number of parameters")
+
+    
     varibles = {}
     if expr.literal.params != None:
         for index, param in enumerate(expr.literal.params):  #set up parameter hashmap
@@ -101,14 +113,19 @@ def run(expr, funcMap):
             else:
                 return result
 
+    raise Exception(expr.name + " did not return any value")
+
 
 
 def runProgram(program):
     
     funclist = parse(program)
-    
-    main = next(filter(lambda x: x.name == 'main', funclist))
 
+    try:
+        main = next(filter(lambda x: x.name == 'main', funclist))
+    except:
+        raise("main not found")
+    
     funcMap = {}
     for func in funclist:
         funcMap[func.name] = func
@@ -117,9 +134,10 @@ def runProgram(program):
         strFunc = strToFunc(input("input: "))
         calls = [[strFunc]]
     else:
-        calls = []
-    
+        calls = [[]]
+        
     result = runFunc(Expr(main, ExprType.FUNC, True, calls), funcMap)
+
 
     if result.type == ExprType.NUM:
         print(result.literal)
@@ -130,8 +148,11 @@ def runProgram(program):
 with open(sys.argv[1]) as f:
     program = f.read()
 
-runProgram(program)
 
+try:
+    runProgram(program)
+except Exception as msg:
+    print(msg)
 
 
 

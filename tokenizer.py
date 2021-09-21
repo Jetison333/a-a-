@@ -7,21 +7,22 @@ numStart = re.compile(r'-|[0-9]')
 num = re.compile(r'[0-9]')
 
 class TokenType(Enum):
-    NAME = auto()
-    NUM = auto()
-    LEFTPARENTH = auto()
-    RIGHTPARENTH = auto()
-    LEFTSQUARE = auto()
-    RIGHTSQUARE = auto()
-    LEFTCURLY = auto()
-    RIGHTCURLY = auto()
-    EQUALS = auto()
-    THEN = auto()
-    COMMA = auto()
+    NAME = 'name'
+    NUM = 'number'
+    LEFTPARENTH = '('
+    RIGHTPARENTH = ')'
+    LEFTSQUARE = '['
+    RIGHTSQUARE = ']'
+    LEFTCURLY = '{'
+    RIGHTCURLY = '}'
+    EQUALS = '='
+    THEN = '>'
+    COMMA = ','
 
 class Token():
-    def __init__(self, typ, literal = None):
+    def __init__(self, typ, lineNum, literal = None):
         self.type = typ
+        self.lineNum = lineNum
         self.literal = literal
 
     def __repr__(self):
@@ -37,6 +38,7 @@ class Tokenizer():
     def __init__(self, program):
         self.program = program
         self.current = 0
+        self.lineNumber = 1
         self.tokens = []
         self.parse()
 
@@ -45,7 +47,12 @@ class Tokenizer():
         return self.program[self.current-1]
 
     def peek(self):
+        if self.current == len(self.program):
+            raise Exception("Unexpected EOF")
         return self.program[self.current]
+
+    def addToken(self, token, literal = None):
+        self.tokens.append(Token(token, self.lineNumber, literal))
 
     def parseName(self):
         
@@ -56,7 +63,7 @@ class Tokenizer():
         while name.match(self.peek()):
             string += self.advance()
 
-        self.tokens.append(Token(TokenType.NAME, string))
+        self.addToken(TokenType.NAME, string)
 
     def parseNum(self):
 
@@ -67,7 +74,7 @@ class Tokenizer():
         while num.match(self.peek()):
             numString += self.advance()
 
-        self.tokens.append(Token(TokenType.NUM, int(numString)))
+        self.addToken(TokenType.NUM, int(numString))
 
     def parse(self):
 
@@ -82,44 +89,49 @@ class Tokenizer():
                 self.parseNum()
 
             elif char == '(':
-                self.tokens.append(Token(TokenType.LEFTPARENTH))
+                self.addToken(TokenType.LEFTPARENTH)
                 self.advance()
 
             elif char == ')':
-                self.tokens.append(Token(TokenType.RIGHTPARENTH))
+                self.addToken(TokenType.RIGHTPARENTH)
                 self.advance()
 
             elif char == '[':
-                self.tokens.append(Token(TokenType.LEFTSQUARE))
+                self.addToken(TokenType.LEFTSQUARE)
                 self.advance()
 
             elif char == ']':
-                self.tokens.append(Token(TokenType.RIGHTSQUARE))
+                self.addToken(TokenType.RIGHTSQUARE)
                 self.advance()
 
             elif char == '{':
-                self.tokens.append(Token(TokenType.LEFTCURLY))
+                self.addToken(TokenType.LEFTCURLY)
                 self.advance()
 
             elif char == '}':
-                self.tokens.append(Token(TokenType.RIGHTCURLY))
+                self.addToken(TokenType.RIGHTCURLY)
                 self.advance()
 
             elif char == '=':
-                self.tokens.append(Token(TokenType.EQUALS))
+                self.addToken(TokenType.EQUALS)
                 self.advance()
 
             elif char == '>':
-                self.tokens.append(Token(TokenType.THEN))
+                self.addToken(TokenType.THEN)
                 self.advance()
 
             elif char == ',':
-                self.tokens.append(Token(TokenType.COMMA))
+                self.addToken(TokenType.COMMA)
                 self.advance()
 
             elif char == '#':
                 while char != '\n' and (self.current < len(self.program)):
                     char = self.advance()
+                self.lineNumber += 1
+
+            elif char == '\n':
+                self.lineNumber += 1
+                self.advance()
 
             else:
                 self.advance()

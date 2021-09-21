@@ -94,8 +94,7 @@ class Case():
 class Parser():
     def __init__(self, program):
         tokenize = tokenizer.Tokenizer(program)
-        tokens = tokenize.tokens
-        self.tokens = tokens
+        self.tokens = tokens = tokenize.tokens
         self.current = 0
         self.functions = []
         self.parse()
@@ -105,6 +104,8 @@ class Parser():
         return self.tokens[self.current-1]
 
     def peek(self):
+        if self.current == len(self.tokens):
+            raise Exception("Unexpected EOF")
         return self.tokens[self.current]
 
     def previous(self):
@@ -119,7 +120,15 @@ class Parser():
             return True
         return False
 
+    def asser(self, token):
+        if self.peek().type != token:
+            raise Exception("Expected '" + token.value + "' at line " + str(self.peek().lineNum) + " instead got '" + self.peek().type.value + "'")
+
+    def unexpect(self):
+        raise Except("Unexpected '" + self.peek().type.value + "' at line " + str(self.peek().lineNum))
+
     def parseFunc(self):
+        self.asser(TokenType.NAME)
         name = self.advance().literal
         params = self.parseParams()
         cases = self.parseCases()
@@ -130,6 +139,7 @@ class Parser():
 
             params = []
             while not self.match(TokenType.RIGHTSQUARE):
+                self.asser(TokenType.NAME)
                 params.append(self.advance())
 
                 self.match(TokenType.COMMA)
@@ -141,6 +151,9 @@ class Parser():
         return None
 
     def parseCases(self):
+        
+        self.asser(TokenType.LEFTCURLY)
+        
         if self.match(TokenType.LEFTCURLY):
 
             cases = []
@@ -159,17 +172,21 @@ class Parser():
         
             second = self.parseExpr()
             
-            self.match(TokenType.THEN)
+            self.asser(TokenType.THEN)
+            self.advance()
 
             returnVal = self.parseExpr()
 
             return Case(first, second, returnVal)
 
+        self.asser(TokenType.RIGHTCURLY)
+
         return Case(returnVal = first)
 
     def parseCall(self):
 
-        self.match(TokenType.LEFTPARENTH)
+        self.asser(TokenType.LEFTPARENTH)
+        self.advance()
         
         params = []
 
@@ -215,6 +232,8 @@ class Parser():
 
         if self.match(TokenType.NUM):
             return Expr(typ = ExprType.NUM, literal = self.previous().literal)
+
+        self.unexpect()
 
     def parse(self):
         while self.current < len(self.tokens):
