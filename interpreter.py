@@ -30,12 +30,8 @@ def printFunc(func, funcMap):
     while True:
         
         func.calls = [[numToExpr(index)]]
-        try:
-            val = runFunc(func, funcMap).literal
-        except Exception as msg:
-            print(msg)
-            return
 
+        val = runFunc(func, funcMap).literal
 
         index += 1
 
